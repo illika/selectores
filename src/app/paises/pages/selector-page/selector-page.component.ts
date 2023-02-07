@@ -22,6 +22,7 @@ export class SelectorPageComponent implements OnInit {
 
   regiones: string[] = [];
   paises: Pais[] = [];
+  fronteras: string[] = [];
 
   ngOnInit(): void {
     this.regiones = this.paisesService.regiones;
@@ -37,11 +38,20 @@ export class SelectorPageComponent implements OnInit {
         error: (_) => console.log("Region no valida")
       });
 
-      this.miFormulario.get("pais")?.valueChanges
-      .subscribe((data) => {
-        this.paisesService.paisesByAlpha(data)
-            .subscribe(console.log);
-      })
+    this.miFormulario.get("pais")?.valueChanges
+      .pipe(
+        tap((_) => {
+          this.fronteras = [];
+          this.miFormulario.get("frontera")?.reset("");
+        }),
+        switchMap((pais) => this.paisesService.paisesByAlpha(pais))
+      )
+      .subscribe((pais) => {
+        if(pais != null) {
+          console.log(pais[0]);
+          this.fronteras = pais[0].borders;
+        }
+      });
 
     /*  
     .subscribe(
