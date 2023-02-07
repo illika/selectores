@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { switchMap, tap } from 'rxjs';
+import { delay, switchMap, tap } from 'rxjs';
 import { Pais } from '../../interfaces/pais.interface';
 import { PaisesService } from '../../services/paises.service';
 
@@ -22,7 +22,10 @@ export class SelectorPageComponent implements OnInit {
 
   regiones: string[] = [];
   paises: Pais[] = [];
-  fronteras: string[] = [];
+  //fronteras: string[] = [];
+  fronteras: Pais[] = [];
+
+  cargando: boolean = false;
 
   ngOnInit(): void {
     this.regiones = this.paisesService.regiones;
@@ -31,26 +34,33 @@ export class SelectorPageComponent implements OnInit {
       .pipe(
         tap((_) => {
           this.miFormulario.get("pais")?.reset("");
+          this.cargando = true;
         }),
         switchMap((region) => this.paisesService.paisesByRegion(region))
       ).subscribe({
-        next: (paises) => this.paises = paises,
+        next: (paises) => {
+          this.paises = paises;
+          this.cargando = false;
+        },
         error: (_) => console.log("Region no valida")
       });
 
     this.miFormulario.get("pais")?.valueChanges
       .pipe(
         tap((_) => {
-          this.fronteras = [];
           this.miFormulario.get("frontera")?.reset("");
+          this.cargando = true;
+          //delay(3000);
         }),
-        switchMap((pais) => this.paisesService.paisesByAlpha(pais))
+        switchMap((codigo) => this.paisesService.paisesByCodigo(codigo)),
+        switchMap((pais) => this.paisesService.getPaisPorCodigos(pais!))
       )
-      .subscribe((pais) => {
-        if(pais != null) {
-          console.log(pais[0]);
-          this.fronteras = pais[0].borders;
-        }
+      .subscribe((paises) => {
+        //if (pais != null) {
+          //this.fronteras = pais[0].borders;
+          this.fronteras = paises;
+          this.cargando = false;
+        //}
       });
 
     /*  
@@ -65,7 +75,7 @@ export class SelectorPageComponent implements OnInit {
   }
 
   guardar() {
-    console.log(this.miFormulario);
+    console.log(this.miFormulario.value);
   }
 
 }
